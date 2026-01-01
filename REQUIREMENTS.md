@@ -421,3 +421,161 @@ This project should tell a clear story:
 * Why each tool is used
 * What tradeoffs were made
 * How it could evolve in production
+
+---
+
+## 19. Implementation Status & Decisions
+
+### 19.1 Infrastructure (Terraform)
+
+**Status:** ✅ **Complete**
+
+#### Bootstrap Infrastructure
+* S3 backend for Terraform state with versioning and encryption
+* DynamoDB table for state locking
+* KMS key for state encryption with rotation enabled
+* GitHub Actions OIDC provider for CI/CD (no static credentials)
+* Location: `infra/bootstrap/`
+
+#### Dev Environment Infrastructure
+* **Cost-optimized with feature flags** for portfolio projects
+* S3 data lake (raw + enriched zones) with lifecycle policies
+* AWS Glue Data Catalog for Athena queries
+* Kinesis Data Stream (1 shard) for streaming ingestion
+* Lambda fraud scorer with Kinesis trigger and DLQ
+* **Optional Redshift Serverless** (disabled by default)
+* CloudWatch logs (3-day retention) and alarms (disabled by default)
+* KMS encryption for all services
+* Location: `infra/envs/dev/`
+
+#### Portfolio Mode Design
+* **Default mode:** S3 + Glue + Athena (~$20/month)
+* **Demo mode:** Enable Redshift temporarily (~$40-60/month)
+* **Usage limits:** 50 RPU-hour/month guardrail on Redshift
+* **Lifecycle policies:** Aggressive (7-day raw, 30-day enriched)
+* **Workflow:** Build → Demo → Destroy to minimize costs
+
+**Deployment:**
+```bash
+make tf-init-dev
+make tf-plan-dev
+make tf-apply-dev
+```
+
+### 19.2 Version Control & CI/CD
+
+**Status:** ✅ **Complete**
+
+#### Git Repository
+* Repository: `github.com/zihan001/fraud-analytics-pipeline`
+* Branch strategy: main branch (simple for portfolio)
+* `.gitignore` excludes: Terraform state, secrets, Python cache, IDE files
+
+#### GitHub Actions Workflows
+
+**Validation Workflow** (`.github/workflows/validate.yml`)
+* Runs on: Every push and pull request
+* Jobs:
+  1. **Terraform validation:** Format check, init, validate (bootstrap + dev)
+  2. **Python linting:** Black formatting, Flake8 syntax checks
+  3. **Markdown linting:** Documentation quality checks
+* Purpose: Catch errors before deployment
+* No AWS credentials required (uses `-backend=false`)
+
+**Future Workflows** (Planned):
+* Unit tests for Producer/Lambda (Phase 2)
+* Automated deployment using OIDC role (Phase 3)
+
+### 19.3 Cost Optimization Features
+
+**Feature Flags** (in `variables.tf`):
+* `enable_redshift` (default: false) - Toggle Redshift Serverless
+* `enable_cloudwatch_alarms` (default: false) - Toggle monitoring alerts
+* `enable_kinesis` (default: true) - Toggle streaming ingestion
+* `enable_lambda` (default: true) - Toggle fraud scoring
+
+**Cost Guardrails:**
+* Redshift usage limit: 50 RPU-hours/month (~$19 cap)
+* S3 lifecycle: 7-day expiration (raw), 30-day Glacier transition (enriched)
+* CloudWatch log retention: 3 days (dev environment)
+* Minimum Redshift capacity: 4 RPUs (AWS minimum)
+
+**Monthly Cost Estimates:**
+| Mode | Cost | Components |
+|------|------|------------|
+| Portfolio (default) | ~$20 | Kinesis + Lambda + S3 + Athena queries |
+| Demo (Redshift ON) | ~$40-60 | Above + Redshift Serverless (limited usage) |
+
+### 19.4 Architecture Decisions
+
+#### Why Athena Instead of Always-On Redshift?
+* **Cost:** Athena is pay-per-query vs. Redshift always-on costs
+* **Portfolio fit:** Demonstrates data lake + SQL analytics without high costs
+* **Flexibility:** Can enable Redshift temporarily for dbt/QuickSight demos
+* **Production path:** Same Glue catalog works with both
+
+#### Why No VPC?
+* **Simplicity:** Faster deployment, fewer moving parts
+* **Cost:** Avoids NAT Gateway (~$32/month) and VPC endpoint costs
+* **Security:** Still encrypted (TLS in transit, KMS at rest)
+* **Trade-off:** Acceptable for dev/portfolio, add VPC for production
+
+#### Why Single main.tf?
+* **Clarity:** All resources visible in one file (~840 lines)
+* **Portfolio scale:** Manageable for small project
+* **Trade-off:** Would refactor into modules for production/teams
+
+#### Why Feature Flags?
+* **Portfolio agility:** Enable/disable components without code changes
+* **Cost control:** Toggle expensive resources (Redshift) on demand
+* **Demo flexibility:** Turn on advanced features for specific demos
+* **Learning tool:** Understand cost impact of each service
+
+### 19.5 Next Steps
+
+**Immediate (In Progress):**
+- [ ] Deploy dev infrastructure to AWS
+- [ ] Implement Producer (Python app to replay CSV → Kinesis)
+- [ ] Implement Lambda fraud scorer (enrichment logic)
+
+**Phase 2:**
+- [ ] Add unit tests for Producer and Lambda
+- [ ] Add GitHub Actions test workflow
+- [ ] End-to-end pipeline testing
+
+**Phase 3 (Optional - If Redshift Demo Needed):**
+- [ ] Implement dbt models for Redshift transformations
+- [ ] Create QuickSight dashboard
+- [ ] Document Redshift vs. Athena comparison
+
+**Phase 4:**
+- [ ] Architecture diagram in docs/
+- [ ] Demo video/screenshots for portfolio
+- [ ] Performance and cost analysis documentation
+
+### 19.6 Deployment Workflow
+
+**For Portfolio Projects:**
+```bash
+# 1. Deploy low-cost stack
+cd infra/envs/dev
+cp terraform.tfvars.example terraform.tfvars
+make tf-init-dev
+make tf-apply-dev
+
+# 2. Build and test with Athena
+# - Run producer → Kinesis → Lambda → S3
+# - Query enriched data with Athena
+# - Capture screenshots/proof
+
+# 3. Optional: Enable Redshift for advanced demo
+terraform apply -var="enable_redshift=true"
+# - Run dbt transformations
+# - Build QuickSight dashboard
+# - Capture proof IMMEDIATELY
+
+# 4. Destroy when done
+make tf-destroy-dev
+```
+
+---
