@@ -117,12 +117,6 @@ variable "s3_enriched_transition_days" {
 # ============================================================================
 # Monitoring Configuration
 # ============================================================================
-variable "enable_cloudwatch_alarms" {
-  description = "Enable CloudWatch alarms for monitoring"
-  type        = bool
-  default     = true
-}
-
 variable "cloudwatch_log_retention_days" {
   description = "CloudWatch log retention in days (keep low for dev to reduce costs)"
   type        = number
