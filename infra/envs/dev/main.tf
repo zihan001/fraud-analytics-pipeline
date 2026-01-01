@@ -74,6 +74,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "raw" {
     id     = "expire-raw-data"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = var.s3_raw_expiration_days
     }
@@ -125,6 +127,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "enriched" {
   rule {
     id     = "transition-to-glacier"
     status = "Enabled"
+
+    filter {}
 
     transition {
       days          = var.s3_enriched_transition_days
