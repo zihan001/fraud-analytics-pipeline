@@ -14,6 +14,54 @@ resource "aws_kms_key" "data_encryption" {
   deletion_window_in_days = 10
   enable_key_rotation     = true
 
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudWatch Logs"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${var.aws_region}.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:CreateGrant",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:*"
+          }
+        }
+      },
+      {
+        Sid    = "Allow Kinesis"
+        Effect = "Allow"
+        Principal = {
+          Service = "kinesis.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
   tags = {
     Name = "${local.name_prefix}-data-key"
   }
@@ -236,6 +284,13 @@ resource "aws_iam_role_policy" "lambda" {
           "kms:GenerateDataKey"
         ]
         Resource = aws_kms_key.data_encryption.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = aws_sqs_queue.lambda_dlq[0].arn
       }
     ]
   })
@@ -249,7 +304,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 
   name              = "/aws/lambda/${local.name_prefix}-fraud-scorer"
   retention_in_days = var.cloudwatch_log_retention_days
-  kms_key_id        = aws_kms_key.data_encryption.arn
+  # Note: KMS encryption removed for dev to avoid policy propagation delays
 
   tags = {
     Name = "${local.name_prefix}-lambda-logs"
