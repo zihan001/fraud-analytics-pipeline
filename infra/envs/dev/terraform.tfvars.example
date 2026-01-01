@@ -1,0 +1,73 @@
+# =============================================================================
+# Cost-Safe Portfolio Mode Configuration
+# =============================================================================
+# This configuration is optimized for building, demoing, and destroying quickly
+# to avoid ongoing AWS costs. Default mode uses S3 + Glue + Athena (~$15-20/mo).
+# Enable Redshift only for short demo windows.
+
+# AWS Configuration
+aws_region   = "ca-west-1"
+project_name = "fraud-analytics"
+environment  = "dev"
+
+# =============================================================================
+# Feature Flags (Cost Control)
+# =============================================================================
+# PORTFOLIO MODE (default): Keep Redshift OFF, use Athena to query S3
+enable_redshift          = false  # Set to true ONLY for demos (~$19/mo for 50 RPU-hours)
+enable_cloudwatch_alarms = false  # Enable if you want email alerts (adds ~$2/mo)
+enable_kinesis           = true   # Keep enabled for real-time streaming demo
+enable_lambda            = true   # Keep enabled for fraud scoring demo
+
+# =============================================================================
+# Kinesis Configuration
+# =============================================================================
+kinesis_shard_count     = 1   # Minimum for demo (~$11/mo)
+kinesis_retention_hours = 24  # Minimum retention
+
+# =============================================================================
+# Lambda Configuration
+# =============================================================================
+lambda_memory_size = 512  # Sufficient for fraud scoring logic
+lambda_timeout     = 300  # 5 minutes
+lambda_batch_size  = 100  # Process up to 100 Kinesis records per batch
+
+# =============================================================================
+# Redshift Configuration (Only Applies if enable_redshift=true)
+# =============================================================================
+redshift_base_capacity  = 4   # Minimum allowed (4 RPUs)
+redshift_rpu_hour_limit = 50  # Monthly usage limit: 50 RPU-hours = ~$19/mo guardrail
+redshift_admin_username = "admin"
+
+# =============================================================================
+# S3 Lifecycle (Aggressive for Dev)
+# =============================================================================
+s3_raw_expiration_days      = 7   # Delete raw data after 7 days
+s3_enriched_transition_days = 30  # Move to Glacier after 30 days
+
+# =============================================================================
+# Monitoring Configuration
+# =============================================================================
+cloudwatch_log_retention_days = 3     # Keep logs for 3 days only (reduce storage costs)
+alarm_email                   = ""    # Add your email if enable_cloudwatch_alarms=true
+
+# =============================================================================
+# USAGE INSTRUCTIONS
+# =============================================================================
+# 
+# LOW-COST BUILD & TEST (DEFAULT):
+#   terraform apply
+#   # Uses S3 + Glue + Athena. Monthly cost: ~$15-20
+#   # Query enriched data with Athena, capture screenshots/proof
+#
+# ENABLE REDSHIFT FOR DEMO:
+#   terraform apply -var="enable_redshift=true"
+#   # Adds Redshift Serverless. Cost increases to ~$35-40/mo
+#   # Usage limit guardrail stops runaway costs at 50 RPU-hours (~$19)
+#   # Run dbt transformations, capture proof, THEN:
+#   terraform apply -var="enable_redshift=false"  # Turn back off
+#
+# DESTROY EVERYTHING:
+#   terraform destroy
+#   # Removes all resources. Back up any data in S3 first!
+#

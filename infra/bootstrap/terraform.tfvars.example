@@ -1,0 +1,8 @@
+# Example tfvars file for bootstrap stack
+# Copy this to terraform.tfvars and fill in your values
+
+aws_region    = "us-east-1"
+project_name  = "fraud-analytics"
+github_org    = "YOUR_GITHUB_ORG_OR_USERNAME"
+github_repo   = "fraud-analytics-pipeline"
+github_branch = "main"

@@ -1,0 +1,82 @@
+name: Validate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  terraform-validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+      
+      - name: Terraform Format Check - Bootstrap
+        run: terraform -chdir=infra/bootstrap fmt -check -recursive
+        continue-on-error: false
+      
+      - name: Terraform Format Check - Dev
+        run: terraform -chdir=infra/envs/dev fmt -check -recursive
+        continue-on-error: false
+      
+      - name: Terraform Init - Bootstrap
+        run: terraform -chdir=infra/bootstrap init -backend=false
+      
+      - name: Terraform Validate - Bootstrap
+        run: terraform -chdir=infra/bootstrap validate
+      
+      - name: Terraform Init - Dev
+        run: terraform -chdir=infra/envs/dev init -backend=false
+      
+      - name: Terraform Validate - Dev
+        run: terraform -chdir=infra/envs/dev validate
+
+  python-lint:
+    name: Python Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install linting tools
+        run: |
+          pip install flake8 black
+      
+      - name: Check formatting with black
+        run: |
+          black --check producer lambda || true
+      
+      - name: Lint with flake8
+        run: |
+          flake8 producer lambda --count --select=E9,F63,F7,F82 --show-source --statistics || true
+          flake8 producer lambda --count --max-complexity=10 --max-line-length=127 --statistics || true
+
+  markdown-lint:
+    name: Markdown Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Lint Markdown files
+        uses: avto-dev/markdown-lint@v1
+        with:
+          config: '.markdownlint.json'
+          args: '**/*.md'
+        continue-on-error: true
