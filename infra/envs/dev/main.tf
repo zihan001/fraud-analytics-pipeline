@@ -2,7 +2,7 @@
 data "aws_caller_identity" "current" {}
 
 locals {
-  account_id = data.aws_caller_identity.current.account_id
+  account_id  = data.aws_caller_identity.current.account_id
   name_prefix = "${var.project_name}-${var.environment}"
 }
 
@@ -268,9 +268,9 @@ resource "aws_lambda_function" "fraud_scorer" {
 
   environment {
     variables = {
-      RAW_BUCKET       = aws_s3_bucket.raw.id
-      ENRICHED_BUCKET  = aws_s3_bucket.enriched.id
-      ENVIRONMENT      = var.environment
+      RAW_BUCKET      = aws_s3_bucket.raw.id
+      ENRICHED_BUCKET = aws_s3_bucket.enriched.id
+      ENVIRONMENT     = var.environment
     }
   }
 
@@ -666,7 +666,7 @@ resource "aws_redshiftserverless_usage_limit" "monthly_rpu_hours" {
   usage_type    = "serverless-compute"
   amount        = var.redshift_rpu_hour_limit
   period        = "monthly"
-  breach_action = "log"  # Options: "log" (just alert), "emit-metric", "deactivate" (stop workgroup)
+  breach_action = "log" # Options: "log" (just alert), "emit-metric", "deactivate" (stop workgroup)
 }
 
 # CloudWatch Log Group for Redshift
