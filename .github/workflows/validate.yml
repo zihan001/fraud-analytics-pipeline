@@ -70,6 +70,12 @@ jobs:
     name: Python Tests
     runs-on: ubuntu-latest
     
+    env:
+      AWS_DEFAULT_REGION: ca-west-1
+      AWS_REGION: ca-west-1
+      AWS_ACCESS_KEY_ID: test-access-key
+      AWS_SECRET_ACCESS_KEY: test-secret-key
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -97,7 +103,7 @@ jobs:
         run: uv run pytest tests/producer/ -v --cov=producer --cov-report=term --cov-report=xml
       
       - name: Run lambda tests
-        run: uv run pytest lambda/test_handler.py -v --cov=lambda/handler --cov-report=term --cov-report=xml
+        run: uv run pytest lambda/test_handler.py -v --cov=lambda --cov-report=term --cov-report=xml --cov-append
       
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
