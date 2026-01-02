@@ -78,7 +78,7 @@ resource "aws_kms_alias" "data_encryption" {
 
 # Raw Zone Bucket
 resource "aws_s3_bucket" "raw" {
-  bucket = "${local.name_prefix}-raw-${local.account_id}"
+  bucket = "${local.name_prefix}-raw-v2-${local.account_id}"
 
   tags = {
     Name = "${local.name_prefix}-raw"
@@ -132,7 +132,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "raw" {
 
 # Enriched Zone Bucket
 resource "aws_s3_bucket" "enriched" {
-  bucket = "${local.name_prefix}-enriched-${local.account_id}"
+  bucket = "${local.name_prefix}-enriched-v2-${local.account_id}"
 
   tags = {
     Name = "${local.name_prefix}-enriched"
