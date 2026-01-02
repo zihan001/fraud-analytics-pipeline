@@ -317,6 +317,7 @@ resource "aws_iam_role_policy" "github_actions" {
           "cloudwatch:*",
           "events:*",
           "sns:*",
+          "sqs:*",
           "dynamodb:*",
           "ec2:DescribeVpcs",
           "ec2:DescribeSubnets",
