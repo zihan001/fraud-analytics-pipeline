@@ -328,7 +328,7 @@ resource "aws_lambda_function" "fraud_scorer" {
 
   function_name = "${local.name_prefix}-fraud-scorer"
   role          = aws_iam_role.lambda[0].arn
-  handler       = "lambda_function.lambda_handler"
+  handler       = "handler.lambda_handler"
   runtime       = "python3.11"
   timeout       = var.lambda_timeout
   memory_size   = var.lambda_memory_size
@@ -339,9 +339,13 @@ resource "aws_lambda_function" "fraud_scorer" {
 
   environment {
     variables = {
-      RAW_BUCKET      = aws_s3_bucket.raw.id
-      ENRICHED_BUCKET = aws_s3_bucket.enriched.id
-      ENVIRONMENT     = var.environment
+      RAW_BUCKET          = aws_s3_bucket.raw.id
+      ENRICHED_BUCKET     = aws_s3_bucket.enriched.id
+      ENRICHED_PREFIX     = "enriched/"
+      METRICS_TABLE       = aws_dynamodb_table.metrics.name
+      LATEST_STATE_TABLE  = aws_dynamodb_table.latest_state.name
+      DLQ_URL             = aws_sqs_queue.lambda_dlq[0].url
+      ENVIRONMENT         = var.environment
     }
   }
 
@@ -906,6 +910,54 @@ resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
 
   dimensions = {
     QueueName = aws_sqs_queue.lambda_dlq[0].name
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-dlq-alarm"
+  }
+}
+
+# Firehose Delivery Failures Alarm
+resource "aws_cloudwatch_metric_alarm" "firehose_delivery_failures" {
+  count = var.enable_cloudwatch_alarms && var.enable_kinesis ? 1 : 0
+
+  alarm_name          = "${local.name_prefix}-firehose-delivery-failures"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "DeliveryToS3.DataFreshness"
+  namespace           = "AWS/Firehose"
+  period              = 300
+  statistic           = "Maximum"
+  threshold           = 900 # 15 minutes
+  alarm_description   = "Firehose data freshness exceeded - check S3 delivery"
+  alarm_actions       = [aws_sns_topic.alarms[0].arn]
+
+  dimensions = {
+    DeliveryStreamName = aws_kinesis_firehose_delivery_stream.transactions[0].name
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-firehose-alarm"
+  }
+}
+
+# DynamoDB Throttling Alarm (Metrics Table)
+resource "aws_cloudwatch_metric_alarm" "dynamodb_throttles" {
+  count = var.enable_cloudwatch_alarms && var.enable_lambda ? 1 : 0
+
+  alarm_name          = "${local.name_prefix}-dynamodb-throttles"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "UserErrors"
+  namespace           = "AWS/DynamoDB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 5
+  alarm_description   = "DynamoDB throttling detected - check write capacity"
+  alarm_actions       = [aws_sns_topic.alarms[0].arn]
+
+  dimensions = {
+    TableName = aws_dynamodb_table.metrics.name
   }
 
   tags = {
