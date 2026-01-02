@@ -1,0 +1,64 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lambda/**'
+      - '.github/workflows/deploy.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-lambda:
+    name: Deploy Lambda Function
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      
+      - name: Package Lambda function
+        run: |
+          cd lambda
+          rm -rf package lambda.zip
+          uv pip install -r requirements.txt --target package/ --python-preference only-system --system
+          cd package && zip -r ../lambda.zip . -q && cd ..
+          zip -g lambda.zip handler.py -q
+          ls -lh lambda.zip
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::735702560596:role/fraud-analytics-github-actions-role
+          aws-region: us-east-1
+      
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name fraud-analytics-dev-fraud-scorer \
+            --zip-file fileb://lambda/lambda.zip
+      
+      - name: Wait for Lambda update to complete
+        run: |
+          aws lambda wait function-updated \
+            --function-name fraud-analytics-dev-fraud-scorer
+      
+      - name: Verify deployment
+        run: |
+          aws lambda get-function \
+            --function-name fraud-analytics-dev-fraud-scorer \
+            --query 'Configuration.[FunctionName,LastModified,State]' \
+            --output table
