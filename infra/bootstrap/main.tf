@@ -26,7 +26,7 @@ provider "aws" {
 locals {
   account_id = data.aws_caller_identity.current.account_id
 
-  terraform_state_bucket_name = "${var.project_name}-terraform-state-${local.account_id}"
+  terraform_state_bucket_name = "${var.project_name}-tfstate-${local.account_id}"
 
   terraform_state_bucket_objects_arn = "arn:aws:s3:::${local.terraform_state_bucket_name}/*"
 }
