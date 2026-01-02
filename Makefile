@@ -22,10 +22,11 @@ lambda-test:
 # Lambda deployment
 lambda-package:
 	cd lambda && \
-	rm -f lambda.zip && \
-	pip install -r requirements.txt -t package/ && \
-	cd package && zip -r ../lambda.zip . && cd .. && \
-	zip -g lambda.zip handler.py
+	rm -rf package lambda.zip && \
+	uv pip install -r requirements.txt --target package/ --python-preference only-system && \
+	cd package && zip -r ../lambda.zip . -q && cd .. && \
+	zip -g lambda.zip handler.py -q && \
+	ls -lh lambda.zip
 
 lambda-deploy: lambda-package
 	@echo "Deploying Lambda function..."

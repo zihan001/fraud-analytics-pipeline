@@ -82,10 +82,10 @@ variable "lambda_batch_size" {
 variable "firehose_buffer_size_mb" {
   description = "Buffer size in MB for Firehose (triggers flush when reached)"
   type        = number
-  default     = 32
+  default     = 64
   validation {
-    condition     = var.firehose_buffer_size_mb >= 1 && var.firehose_buffer_size_mb <= 128
-    error_message = "Firehose buffer size must be between 1 and 128 MB."
+    condition     = var.firehose_buffer_size_mb >= 64 && var.firehose_buffer_size_mb <= 128
+    error_message = "Firehose buffer size must be between 64 and 128 MB when dynamic partitioning is enabled."
   }
 }
 

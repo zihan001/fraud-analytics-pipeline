@@ -2,6 +2,8 @@
 
 A **hybrid streaming + batch** fraud analytics pipeline on AWS, combining real-time fraud scoring with durable batch analytics.
 
+**Status**: ✅ **Production-Ready** — End-to-end validation complete (see [docs/VALIDATION_RESULTS.md](docs/VALIDATION_RESULTS.md))
+
 ## Architecture
 
 ```
@@ -11,6 +13,14 @@ Producer → Kinesis Data Stream ──┬→ Firehose → S3 (raw) → Athena/R
                                              ├→ DynamoDB (live metrics/state for dashboard)
                                              └→ SQS DLQ (invalid events)
 ```
+
+**Validated Components**:
+- ✅ Producer → Kinesis (event envelope pattern, 100% success rate)
+- ✅ Lambda fraud scoring (100% validation pass, zero DLQ failures)
+- ✅ DynamoDB metrics + latest state (sub-second writes)
+- ✅ S3 enriched (individual JSON files with fraud_analysis)
+- ✅ Firehose → S3 raw (GZIP compressed, dynamic partitioning: dt/hr)
+- ✅ CloudWatch monitoring (all alarms in OK state)
 
 ### Key Components
 

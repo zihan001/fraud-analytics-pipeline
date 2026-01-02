@@ -557,7 +557,7 @@ make tf-apply-dev
 - [ ] Add GitHub Actions test workflow
 - [ ] End-to-end pipeline testing
 
-**Phase 3 (Optional - If Redshift Demo Needed):**
+**Phase 3:**
 - [ ] Implement dbt models for Redshift transformations
 - [ ] Create QuickSight dashboard
 - [ ] Document Redshift vs. Athena comparison

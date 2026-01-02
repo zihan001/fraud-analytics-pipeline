@@ -123,7 +123,7 @@ resource "aws_kinesis_firehose_delivery_stream" "transactions" {
   extended_s3_configuration {
     role_arn            = aws_iam_role.firehose[0].arn
     bucket_arn          = aws_s3_bucket.raw.arn
-    prefix              = "raw/dt=!{timestamp:yyyy-MM-dd}/hr=!{timestamp:HH}/"
+    prefix              = "raw/dt=!{partitionKeyFromQuery:dt}/hr=!{partitionKeyFromQuery:hr}/"
     error_output_prefix = "raw_errors/dt=!{timestamp:yyyy-MM-dd}/hr=!{timestamp:HH}/!{firehose:error-output-type}/"
 
     # Buffering hints for optimal file sizing
