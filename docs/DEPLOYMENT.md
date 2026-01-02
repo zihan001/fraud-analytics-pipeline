@@ -60,7 +60,7 @@ lambda_timeout = 300
 lambda_memory_size = 512
 
 # Firehose buffering
-firehose_buffer_size_mb = 32
+firehose_buffer_size_mb = 64
 firehose_buffer_interval_sec = 180
 
 # Monitoring

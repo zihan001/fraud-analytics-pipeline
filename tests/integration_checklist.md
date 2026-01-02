@@ -44,7 +44,7 @@ aws cloudwatch get-metric-statistics \
 
 **Expected Results:**
 - [ ] Files appear in S3 raw bucket under `raw/dt=YYYY-MM-DD/hr=HH/`
-- [ ] File sizes are reasonable (target: 16-64MB after GZIP, ~32MB buffer)
+- [ ] File sizes are reasonable (target: 64-128MB after GZIP, ~64MB buffer)
 - [ ] File format is GZIP-compressed JSON Lines
 - [ ] Each line is valid JSON with newline delimiter
 - [ ] Partitions match event timestamps (not ingestion time)

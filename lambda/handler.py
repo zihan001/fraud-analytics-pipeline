@@ -13,7 +13,7 @@ import json
 import os
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -79,7 +79,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         'sequenceNumber': sequence_number,
                         'approxArrivalTimestamp': approx_arrival
                     },
-                    raw_payload=payload_str[:4000]  # Truncate to 4KB
+                    raw_payload=payload_str  # Truncation handled in send_to_dlq
                 )
                 dlq_count += 1
                 print(json.dumps({
@@ -180,6 +180,12 @@ def validate_event(event: Dict[str, Any]) -> Optional[str]:
     except (ValueError, AttributeError):
         return f"Invalid event_ts format: {event.get('event_ts')}. Must be ISO8601"
     
+    # Validate event-type-specific requirements
+    payload = event.get('payload', {})
+    if event['event_type'] in ['device_status', 'heartbeat']:
+        if not payload.get('device_id'):
+            return f"Missing required field 'device_id' for {event['event_type']} events"
+    
     return None
 
 
@@ -223,7 +229,7 @@ def calculate_fraud_score(event: Dict[str, Any]) -> Dict[str, Any]:
         risk_score += 30
         risk_reasons.append('high_amount')
     
-    if amount > 0 and amount % 1000 == 0:
+    if amount != 0 and amount % 1000 == 0:
         risk_score += 20
         risk_reasons.append('round_amount')
     
@@ -276,6 +282,23 @@ def process_event(event: Dict[str, Any]) -> bool:
         update_dynamodb(event)
         
         return True
+    
+    except ValueError as e:
+        # Validation errors discovered during processing - send to DLQ
+        print(json.dumps({
+            'level': 'WARNING',
+            'message': 'Validation error during processing - sending to DLQ',
+            'error': str(e),
+            'event_id': event.get('event_id')
+        }))
+        send_to_dlq(
+            error_type='ProcessingValidationError',
+            error_message=str(e),
+            kinesis_metadata=event.get('kinesis_metadata', {}),
+            raw_payload=json.dumps(event, default=str)[:4000],
+            decoded_json=event
+        )
+        return True  # Mark as handled (don't retry)
         
     except ClientError as e:
         error_code = e.response.get('Error', {}).get('Code', '')
@@ -418,8 +441,8 @@ def update_dynamodb(event: Dict[str, Any]) -> None:
                 updated_ts=now_iso
             )
         else:
-            # Missing required field for device_status
-            raise ValueError(f"device_id required for {event_type} events")
+            # Defensive check - should be caught by validate_event
+            raise ValueError(f"device_id required for {event_type} events (validation missed)")
 
 
 def update_metric_counter(

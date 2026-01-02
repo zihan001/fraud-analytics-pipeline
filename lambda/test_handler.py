@@ -4,9 +4,8 @@ Unit tests for Lambda fraud scoring handler.
 import base64
 import json
 import os
-from datetime import datetime, timezone
 from decimal import Decimal
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import patch
 
 import pytest
 
@@ -22,7 +21,6 @@ from handler import (
     validate_event,
     enrich_event,
     calculate_fraud_score,
-    process_event,
     update_metric_counter,
     update_latest_state,
     send_to_dlq
