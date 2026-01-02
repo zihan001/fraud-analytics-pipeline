@@ -84,7 +84,7 @@ variable "firehose_buffer_size_mb" {
   type        = number
   default     = 64
   validation {
-    condition     = var.firehose_buffer_size_mb >= 1 && var.firehose_buffer_size_mb <= 128  
+    condition     = var.firehose_buffer_size_mb >= 1 && var.firehose_buffer_size_mb <= 128
     error_message = "Firehose buffer size must be between 1 and 128 MB when dynamic partitioning is enabled."
   }
 }

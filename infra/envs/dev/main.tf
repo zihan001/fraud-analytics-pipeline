@@ -948,7 +948,7 @@ resource "aws_cloudwatch_metric_alarm" "dynamodb_throttles" {
   alarm_name          = "${local.name_prefix}-dynamodb-throttles"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 2
-  metric_name         = "ThrottledRequests" 
+  metric_name         = "ThrottledRequests"
   namespace           = "AWS/DynamoDB"
   period              = 60
   statistic           = "Sum"
