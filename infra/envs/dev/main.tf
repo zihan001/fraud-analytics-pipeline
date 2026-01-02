@@ -288,6 +288,18 @@ resource "aws_iam_role_policy" "lambda" {
       {
         Effect = "Allow"
         Action = [
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem"
+        ]
+        Resource = [
+          aws_dynamodb_table.metrics.arn,
+          aws_dynamodb_table.latest_state.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
           "sqs:SendMessage"
         ]
         Resource = aws_sqs_queue.lambda_dlq[0].arn
@@ -366,6 +378,9 @@ resource "aws_lambda_event_source_mapping" "kinesis" {
 
   maximum_batching_window_in_seconds = 5
   parallelization_factor             = 1
+
+  # Enable partial batch failure response
+  function_response_types = ["ReportBatchItemFailures"]
 
   destination_config {
     on_failure {

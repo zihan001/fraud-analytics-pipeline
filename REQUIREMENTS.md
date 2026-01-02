@@ -1,3 +1,17 @@
+
+# Project Progress Summary (as of 2026-01-01)
+
+**Completed:**
+- Infrastructure bootstrapped with Terraform (Kinesis, S3, IAM, etc.)
+- Python producer implemented: replays PaySim CSV as JSON events to Kinesis at configurable rate (5–100 events/sec)
+- Producer supports robust error handling, metrics, and logging
+
+**In Progress / Next:**
+- Lambda consumer for real-time fraud scoring and enrichment
+- S3 data lake zones (raw/enriched) and partitioning
+- dbt models for Redshift analytics
+- CI/CD, data quality, and dashboarding
+
 # Real-Time Fraud Analytics Data Engineering Pipeline (AWS)
 
 ## 1. Purpose
