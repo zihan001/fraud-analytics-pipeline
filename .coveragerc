@@ -1,0 +1,40 @@
+[run]
+# Measure coverage for these source directories
+source = producer, lambda
+
+# Omit these files/patterns from coverage
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */venv/*
+    */virtualenv/*
+    */package/*
+    */.venv/*
+
+# Enable branch coverage (measures if/else branches)
+branch = True
+
+[report]
+# Report output configuration
+precision = 2
+show_missing = True
+skip_covered = False
+
+# Exclude lines from coverage (e.g., defensive code, debug statements)
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == "__main__":
+    if TYPE_CHECKING:
+    @abstract
+
+[html]
+# HTML report directory
+directory = htmlcov
+
+[xml]
+# XML report for CI/CD integration
+output = coverage.xml

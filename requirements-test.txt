@@ -1,0 +1,18 @@
+# Testing dependencies for fraud analytics pipeline
+# Install with: pip install -r requirements-test.txt
+
+# Core testing framework
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+
+# AWS mocking
+moto[kinesis,s3,dynamodb,lambda]==4.2.9
+
+# Test utilities
+freezegun==1.4.0  # Time mocking for time-dependent tests
+responses==0.24.1  # HTTP response mocking
+
+# Code quality (also used in CI)
+black==23.12.1
+flake8==7.0.0
