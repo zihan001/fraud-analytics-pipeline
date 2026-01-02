@@ -149,5 +149,5 @@ jobs:
           echo "**Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed Resources**:" >> $GITHUB_STEP_SUMMARY
-          echo "- Kinesis Stream: \`${{ steps.outputs.outputs.kinesis_stream }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Lambda Function: \`${{ steps.outputs.outputs.lambda_function }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Kinesis Stream: \`${{ steps.outputs.kinesis_stream }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Lambda Function: \`${{ steps.outputs.lambda_function }}\`" >> $GITHUB_STEP_SUMMARY
