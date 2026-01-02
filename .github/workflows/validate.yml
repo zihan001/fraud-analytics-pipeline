@@ -66,6 +66,53 @@ jobs:
           flake8 producer lambda --count --select=E9,F63,F7,F82 --show-source --statistics || true
           flake8 producer lambda --count --max-complexity=10 --max-line-length=127 --statistics || true
 
+  python-test:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    
+    env:
+      AWS_DEFAULT_REGION: ca-west-1
+      AWS_REGION: ca-west-1
+      AWS_ACCESS_KEY_ID: test-access-key
+      AWS_SECRET_ACCESS_KEY: test-secret-key
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      
+      - name: Create virtual environment
+        run: uv venv
+      
+      - name: Install dependencies
+        run: |
+          uv pip install -r requirements-test.txt
+          uv pip install -r producer/requirements.txt
+          uv pip install -e .
+      
+      - name: Run producer tests
+        run: uv run pytest tests/producer/ -v --cov=producer --cov-report=term --cov-report=xml
+      
+      - name: Run lambda tests
+        run: uv run pytest lambda/test_handler.py -v --cov=lambda --cov-report=term --cov-report=xml --cov-append
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+
   markdown-lint:
     name: Markdown Linting
     runs-on: ubuntu-latest
