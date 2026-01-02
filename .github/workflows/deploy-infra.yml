@@ -4,7 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'infra/envs/dev/**'
+      - 'infra/envs/**'
+      - '.github/workflows/deploy-infra.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/envs/**'
       - '.github/workflows/deploy-infra.yml'
   workflow_dispatch:
     inputs:
@@ -30,10 +35,11 @@ env:
   AWS_REGION: ca-west-1
   AWS_ROLE_ARN: arn:aws:iam::735702560596:role/fraud-analytics-github-actions-role
   TF_VERSION: '1.6.0'
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
 
 jobs:
   terraform-plan:
-    name: Terraform Plan
+    name: Terraform Plan (${{ github.event.inputs.environment || 'dev' }})
     runs-on: ubuntu-latest
     
     steps:
@@ -52,27 +58,34 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Terraform Format Check
-        run: terraform -chdir=infra/envs/dev fmt -check -recursive
+        run: terraform -chdir=infra/envs/${{ env.ENVIRONMENT }} fmt -check -recursive
         continue-on-error: true
       
       - name: Terraform Init
-        run: terraform -chdir=infra/envs/dev init
+        run: terraform -chdir=infra/envs/${{ env.ENVIRONMENT }} init
       
       - name: Terraform Validate
-        run: terraform -chdir=infra/envs/dev validate
+        run: terraform -chdir=infra/envs/${{ env.ENVIRONMENT }} validate
       
       - name: Terraform Plan
         id: plan
         run: |
-          terraform -chdir=infra/envs/dev plan -out=tfplan -no-color | tee plan_output.txt
+          terraform -chdir=infra/envs/${{ env.ENVIRONMENT }} plan -out=tfplan -no-color | tee plan_output.txt
           echo "PLAN_EXIT_CODE=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
       
+      - name: Check Terraform Plan Exit Code  
+        run: |  
+          if [ "${{ steps.plan.outputs.PLAN_EXIT_CODE }}" -ne 0 ]; then  
+            echo "Terraform plan failed with exit code ${{ steps.plan.outputs.PLAN_EXIT_CODE }}."  
+            exit 1  
+          fi  
+          
       - name: Upload plan artifact
         uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
         with:
-          name: tfplan
-          path: infra/envs/dev/tfplan
-          retention-days: 7
+          name: tfplan-${{ env.ENVIRONMENT }}
+          path: infra/envs/${{ env.ENVIRONMENT }}/tfplan
       
       - name: Comment PR with plan
         uses: actions/github-script@v7
@@ -97,15 +110,16 @@ jobs:
             });
 
   terraform-apply:
-    name: Terraform Apply
+    name: Terraform Apply (${{ github.event.inputs.environment || 'dev' }})
     runs-on: ubuntu-latest
     needs: terraform-plan
     if: |
-      github.ref == 'refs/heads/main' && 
-      (github.event_name == 'push' || 
-       (github.event_name == 'workflow_dispatch' && inputs.auto_approve == true))
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main' &&  
+      (github.event_name == 'push' ||  
+       github.event_name == 'workflow_dispatch')  
     environment:
-      name: dev
+      name: ${{ github.event.inputs.environment || 'dev' }}
     
     steps:
       - name: Checkout code
@@ -123,29 +137,31 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Terraform Init
-        run: terraform -chdir=infra/envs/dev init
+        run: terraform -chdir=infra/envs/${{ env.ENVIRONMENT }} init
       
       - name: Download plan artifact
         uses: actions/download-artifact@v4
         with:
-          name: tfplan
-          path: infra/envs/dev/
+          name: tfplan-${{ env.ENVIRONMENT }}
+          path: infra/envs/${{ env.ENVIRONMENT }}/
       
       - name: Terraform Apply
-        run: terraform -chdir=infra/envs/dev apply -auto-approve tfplan
+        run: terraform -chdir=infra/envs/${{ env.ENVIRONMENT }} apply -auto-approve tfplan
       
       - name: Get outputs
         id: outputs
         run: |
-          cd infra/envs/dev
-          echo "kinesis_stream=$(terraform output -raw kinesis_stream_name)" >> $GITHUB_OUTPUT
-          echo "lambda_function=$(terraform output -raw lambda_function_name)" >> $GITHUB_OUTPUT
+          cd infra/envs/${{ env.ENVIRONMENT }}
+          kinesis_stream=$(terraform output -raw kinesis_stream_name 2>/dev/null || echo "N/A")  
+          lambda_function=$(terraform output -raw lambda_function_name 2>/dev/null || echo "N/A")  
+          echo "kinesis_stream=$kinesis_stream" >> $GITHUB_OUTPUT  
+          echo "lambda_function=$lambda_function" >> $GITHUB_OUTPUT  
       
       - name: Summary
         run: |
           echo "### Infrastructure Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment**: dev" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
           echo "**Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed Resources**:" >> $GITHUB_STEP_SUMMARY
