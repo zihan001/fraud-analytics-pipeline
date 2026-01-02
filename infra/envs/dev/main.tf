@@ -339,13 +339,13 @@ resource "aws_lambda_function" "fraud_scorer" {
 
   environment {
     variables = {
-      RAW_BUCKET          = aws_s3_bucket.raw.id
-      ENRICHED_BUCKET     = aws_s3_bucket.enriched.id
-      ENRICHED_PREFIX     = "enriched/"
-      METRICS_TABLE       = aws_dynamodb_table.metrics.name
-      LATEST_STATE_TABLE  = aws_dynamodb_table.latest_state.name
-      DLQ_URL             = aws_sqs_queue.lambda_dlq[0].url
-      ENVIRONMENT         = var.environment
+      RAW_BUCKET         = aws_s3_bucket.raw.id
+      ENRICHED_BUCKET    = aws_s3_bucket.enriched.id
+      ENRICHED_PREFIX    = "enriched/"
+      METRICS_TABLE      = aws_dynamodb_table.metrics.name
+      LATEST_STATE_TABLE = aws_dynamodb_table.latest_state.name
+      DLQ_URL            = aws_sqs_queue.lambda_dlq[0].url
+      ENVIRONMENT        = var.environment
     }
   }
 
