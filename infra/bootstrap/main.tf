@@ -305,6 +305,7 @@ resource "aws_iam_role_policy" "github_actions" {
         Action = [
           "s3:*",
           "kinesis:*",
+          "firehose:*",
           "lambda:*",
           "iam:*",
           "logs:*",
