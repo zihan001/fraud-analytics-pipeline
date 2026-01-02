@@ -2,6 +2,8 @@
 import json
 import logging
 import time
+import uuid
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 import boto3
 from botocore.exceptions import ClientError
@@ -76,7 +78,16 @@ class KinesisPublisher:
         if partition_key is None:
             partition_key = transaction.get("nameOrig", "default")
         
-        data = json.dumps(transaction)
+        # Wrap transaction in event envelope format
+        event = {
+            "event_id": str(uuid.uuid4()),
+            "event_type": "transaction",
+            "event_ts": datetime.now(timezone.utc).isoformat(),
+            "source": "paysim/v1.0",
+            "payload": transaction
+        }
+        
+        data = json.dumps(event)
         
         for attempt in range(max_retries):
             try:

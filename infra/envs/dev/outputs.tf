@@ -156,6 +156,42 @@ output "sns_alarms_topic_arn" {
 }
 
 # ============================================================================
+# Kinesis Firehose Outputs
+# ============================================================================
+output "firehose_delivery_stream_name" {
+  description = "Name of the Kinesis Firehose delivery stream"
+  value       = var.enable_kinesis ? aws_kinesis_firehose_delivery_stream.transactions[0].name : null
+}
+
+output "firehose_delivery_stream_arn" {
+  description = "ARN of the Kinesis Firehose delivery stream"
+  value       = var.enable_kinesis ? aws_kinesis_firehose_delivery_stream.transactions[0].arn : null
+}
+
+# ============================================================================
+# DynamoDB Outputs
+# ============================================================================
+output "dynamodb_metrics_table_name" {
+  description = "Name of the DynamoDB metrics table"
+  value       = aws_dynamodb_table.metrics.name
+}
+
+output "dynamodb_metrics_table_arn" {
+  description = "ARN of the DynamoDB metrics table"
+  value       = aws_dynamodb_table.metrics.arn
+}
+
+output "dynamodb_latest_state_table_name" {
+  description = "Name of the DynamoDB latest_state table"
+  value       = aws_dynamodb_table.latest_state.name
+}
+
+output "dynamodb_latest_state_table_arn" {
+  description = "ARN of the DynamoDB latest_state table"
+  value       = aws_dynamodb_table.latest_state.arn
+}
+
+# ============================================================================
 # EventBridge Outputs
 # ============================================================================
 output "eventbridge_daily_load_rule_name" {
