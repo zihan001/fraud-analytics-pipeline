@@ -261,13 +261,61 @@ Set in `infra/envs/dev/terraform.tfvars`:
 
 ## Testing
 
-**Unit Tests:**
+### Test Infrastructure
+
+**Install Test Dependencies:**
 ```bash
-pytest lambda/test_handler.py -v
+pip install -r requirements-test.txt
 ```
 
-**Integration Tests:**
-See [`tests/integration_checklist.md`](tests/integration_checklist.md)
+### Running Tests
+
+**All Tests:**
+```bash
+make test
+# or
+pytest -v
+```
+
+**With Coverage Report:**
+```bash
+pytest --cov=producer --cov=lambda --cov-report=term --cov-report=html
+```
+
+**Component-Specific Tests:**
+```bash
+# Lambda tests
+pytest lambda/test_handler.py -v
+# or
+make lambda-test
+
+# Producer tests
+pytest tests/producer/ -v
+```
+
+**By Test Marker:**
+```bash
+pytest -m unit           # Unit tests only
+pytest -m integration    # Integration tests only
+pytest -m "not slow"     # Skip slow tests
+```
+
+### Test Categories
+
+**Unit Tests** (Fast, no AWS required):
+- `lambda/test_handler.py` — Lambda fraud scoring logic (15 tests)
+- `tests/producer/` — Producer component tests (CSV, Kinesis client, config)
+
+**Integration Tests** (Requires AWS):
+- See [`tests/integration_checklist.md`](tests/integration_checklist.md) for manual validation
+- Automated integration tests in `tests/integration/` (upcoming)
+
+### Testing Philosophy
+
+- **Unit tests**: Fast, mocked AWS services (boto3 mocked with moto)
+- **Integration tests**: Manual validation checklist (comprehensive, real AWS services)
+- **Coverage reporting**: No threshold enforcement, report-only for visibility
+- **CI/CD**: All unit tests run automatically on PR and merge
 
 ## Contributing
 
